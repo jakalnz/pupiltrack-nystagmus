@@ -8,46 +8,14 @@ from matplotlib.animation import FuncAnimation
 import _thread
 import os
 
-figure, axis = plt.subplots(2, 1,sharex=True)
-axis[0].set_title("Horizontal Displacment")
-axis[1].set_title("Vertical Displacement")
-#plt.ion()
 
-
-# def animate(i,timestamps, xcoordinates, ycoordinates):
-#   #limit data to 10 seconds (125 samples)
-#   timestamps = timestamps[-125:]
-#   xcoordinates = xcoordinates[-125:]
-#   ycoordinates = ycoordinates[-125:]
-#   #clear the data (is it necessary?)
-#   axis[0].clear
-#   axis[1].clear
-
-#   axis[0].plot(timestamps,xcoordinates)
-#   axis[1].plot(timestamps,ycoordinates)
-
-
-# Lets call the Plot.py in a function plot
+# Call the plot.py in a function plot, plot.py will run in a separate thread and graph pupil movement in near realtime
+# thanks to  https://pyshine.com/How-to-plot-real-time-frame-rate-in-opencv-and-matplotlib/
 def plot():
 	os.system('python plot.py')
-# Start the thread for the plot function
 
 
-
-# Create a VideoCapture object and read from input file
-# If the input is the camera, pass 0 instead of the video file name
-#cap = cv2.VideoCapture('Vertical Nystagmus.mp4')
-cap = cv2.VideoCapture('Bob.MPG')
-
-# frame_width = int(cap.get(3))
-# frame_height = int(cap.get(4))
-# size = (frame_width, frame_height)
-
-# result = cv2.VideoWriter('filename.avi',cv2.VideoWriter_fourcc(*'MJPG'),10, size)
-#open a file in write mode to store x and y coordinates
-output_file = open('data/output.csv', 'w', newline='')
-writer = csv.writer(output_file)
-_thread.start_new_thread(plot,())
+#Identify pupil position - awesome methods from nphilip1098
 def fit_rotated_ellipse_ransac(data,iter=50,sample_num=10,offset=80.0):
 
     count_max = 0
@@ -103,19 +71,29 @@ def fit_rotated_ellipse(data):
 
     return (cx,cy,w,h,theta)
 
+# Create a VideoCapture object and read from input file
+# If the input is the camera, pass 0 instead of the video file name
+cap = cv2.VideoCapture('Bob.MPG')
+
+# If the input is a camera - set isStream to True to record (have not tested)
+isStream = False
+if isStream:
+  frame_width = int(cap.get(3))
+  frame_height = int(cap.get(4))
+  size = (frame_width, frame_height)
+  result = cv2.VideoWriter('filename.avi',cv2.VideoWriter_fourcc(*'MJPG'),10, size)  
+
+#open a file in write mode to store x and y coordinates
+output_file = open('data/output.csv', 'w', newline='')
+writer = csv.writer(output_file)
 # Check if camera opened successfully
 if (cap.isOpened()== False): 
   print("Error opening video stream or file")
 
+# Start the thread for the plot function
+_thread.start_new_thread(plot,())
+
 # Read until video is completed
-xcoordinates= []
-ycoordinates= []
-timestamps = []
-#axis[0].plot(timestamps,xcoordinates)
-#axis[1].plot(timestamps,ycoordinates)
-
-#ani = animation.FuncAnimation(figure, animate,fargs=(timestamps, xcoordinates, ycoordinates), interval = 80)
-
 while(cap.isOpened()):
   # Capture frame-by-frame
   ret, frame = cap.read()
@@ -142,20 +120,16 @@ while(cap.isOpened()):
           area = cv2.contourArea(con)
           if(len(approx) > 10 and area > 1000):
               cx,cy,w,h,theta = fit_rotated_ellipse_ransac(con.reshape(-1,2))
-              timestamp = cap.get(cv2.CAP_PROP_POS_MSEC)/1000
-              #xcoordinates.append(cx) #removed as saving to datafile instead
-              #ycoordinates.append(cy)
-              #timestamps.append(timestamp)
-              #writer.writerow([timestamp,cx,cy])
+              #add data to csv
+              timestamp = cap.get(cv2.CAP_PROP_POS_MSEC)/1000 #get timestamp
               print(str(timestamp)+','+str(cx)+ ','+ str(cy), file=open('data\output.csv', 'a'))
+              # draw pupil
               cv2.ellipse(frame,(int(cx),int(cy)),(int(w),int(h)),theta*180.0/np.pi,0.0,360.0,(0,0,255),1)
               cv2.drawMarker(frame, (int(cx),int(cy)),(0, 0, 255),cv2.MARKER_CROSS,2,1)
               cv2.imshow('Output',frame)
-              #axis[0].plot(timestamps,xcoordinates)
-              #axis[1].plot(timestamps,ycoordinates)
-              #figure.canvas.draw()
               
-            #   result.write(frame)
+              if isStream:
+                result.write(frame)
     # Press Q on keyboard to  exit
       
       if cv2.waitKey(25) & 0xFF == ord('q'):
@@ -163,15 +137,18 @@ while(cap.isOpened()):
   # Break the loop
   else: 
     break
-output_file.close()
-axis[0].plot(timestamps,xcoordinates)
-axis[1].plot(timestamps,ycoordinates)
 
-plt.show()
-#plt.plot(ycoordinates[:])
+# figure, axis = plt.subplots(2, 1,sharex=True)
+# axis[0].set_title("Horizontal Displacment")
+# axis[1].set_title("Vertical Displacement")
+# axis[0].plot(timestamps,xcoordinates)
+# axis[1].plot(timestamps,ycoordinates)
 #plt.show()
-# When everything done, release the video capture object
+
+# When everything done, release the video capture object and tidy-up
+output_file.close()
 cap.release()
-# result.release()
+if isStream:
+  result.release()
 # Closes all the frames
 cv2.destroyAllWindows()

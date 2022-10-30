@@ -4,7 +4,8 @@ import matplotlib.pyplot as plt
 
 # Create a VideoCapture object and read from input file
 # If the input is the camera, pass 0 instead of the video file name
-cap = cv2.VideoCapture('Vertical Nystagmus.mp4')
+#cap = cv2.VideoCapture('Vertical Nystagmus.mp4')
+cap = cv2.VideoCapture('Bob.MPG')
 
 # frame_width = int(cap.get(3))
 # frame_height = int(cap.get(4))
@@ -120,7 +121,7 @@ plt.plot(xcoordinates[:])
 plt.xlabel
 plt.show()
 plt.plot(ycoordinates[:])
-
+plt.show()
 # When everything done, release the video capture object
 cap.release()
 # result.release()
