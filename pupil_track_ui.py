@@ -86,6 +86,7 @@ if isStream:
 #open a file in write mode to store x and y coordinates
 output_file = open('data/output.csv', 'w', newline='')
 writer = csv.writer(output_file)
+print('timestamp'+','+ 'xpos' + ','+ 'ypos', file=open('data\output.csv', 'a'))
 # Check if camera opened successfully
 if (cap.isOpened()== False): 
   print("Error opening video stream or file")
