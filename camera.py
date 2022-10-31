@@ -9,7 +9,9 @@ import matplotlib.pyplot as plt
 # If the input is the camera, pass 0 instead of the video file name
 #cap = cv2.VideoCapture('Vertical Nystagmus.mp4')
 #cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
-cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+cap_args = [0, cv2.CAP_DSHOW]
+
+cap = cv2.VideoCapture(*cap_args)
 
 #Check if camera was opened correctly
 if not (cap.isOpened()):

@@ -8,7 +8,23 @@ from matplotlib.animation import FuncAnimation
 import _thread
 import os
 from datetime import datetime
+import shutil #rcopy and rename
+from graph_csv import graph_csv
 
+
+#### ARGUMENTS #####
+source_video_path = 'Bob.MPG'
+output_filename = 'Bob'
+isCamera = False # if True overrides source_video_path
+# If the input is a camera - set isStream to True to record (have not tested)
+isStream = False
+
+#### GUI GOES HERE ####
+# GUI to simplify argument input, possibly also to allow review using graph_csv if csv selected
+
+
+
+#### METHODS ####
 
 # Call the plot.py in a function plot, plot.py will run in a separate thread and graph pupil movement in near realtime
 # thanks to  https://pyshine.com/How-to-plot-real-time-frame-rate-in-opencv-and-matplotlib/
@@ -72,22 +88,17 @@ def fit_rotated_ellipse(data):
 
     return (cx,cy,w,h,theta)
 
+
+##### MAIN ######
+
 # Create a VideoCapture object and read from input file
 # If the input is the camera, pass 0 instead of the video file name
-# cap = cv2.VideoCapture('Bob.MPG')
-
-
-isCamera = True
+cap = cv2.VideoCapture(source_video_path)
 
 if isCamera:
-  cap = cv2.VideoCapture(0,cv2.CAP_DSHOW)
+  cap = cv2.VideoCapture(0,cv2.CAP_DSHOW) #settings for Vesti video frenzels (live tracking)
 
-
-
-
-# If the input is a camera - set isStream to True to record (have not tested)
-isStream = True
-if isStream:
+if isStream: #save video input
   frame_width = int(cap.get(3))
   frame_height = int(cap.get(4))
   size = (frame_width, frame_height)
@@ -108,7 +119,8 @@ if isCamera:
   print('camera ready')
 # Start the thread for the plot function
 _thread.start_new_thread(plot,())
-start_time = datetime.now().timestamp()
+start_time = datetime.now().timestamp() #used for camera recording timestamp
+file_name_suffix = datetime.now().strftime("%Y-%m-%d--%H%M%S") #use when saving csv and video
 
 # Read until video is completed
 while(cap.isOpened()):
@@ -159,17 +171,22 @@ while(cap.isOpened()):
   else: 
     break
 
-# figure, axis = plt.subplots(2, 1,sharex=True)
-# axis[0].set_title("Horizontal Displacment")
-# axis[1].set_title("Vertical Displacement")
-# axis[0].plot(timestamps,xcoordinates)
-# axis[1].plot(timestamps,ycoordinates)
-#plt.show()
 
-# When everything done, release the video capture object and tidy-up
+# When everything done, release the video capture object and tidy-up copying and saving file/s to data folders
 output_file.close()
-cap.release()
+graph_csv()
+
+#rename csv file to something memorable (has to be generic intially to avoid passing arguments to plot.py thread)
+csv_source = 'data/output.csv'
+csv_target = 'data/'+ output_filename + ' ' + file_name_suffix+'.csv'
+shutil.copy(csv_source, csv_target)
+
+cap.release() #release capture
 if isStream:
-  result.release()
+  result.release() #release writer
+  vid_source = 'filename.avi'
+  vid_target = 'video_capture/'+ output_filename + ' ' + file_name_suffix+'.avi'
+  shutil.copy(csv_source, csv_target)
+  
 # Closes all the frames
 cv2.destroyAllWindows()
