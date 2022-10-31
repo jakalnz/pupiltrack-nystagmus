@@ -10,18 +10,40 @@ import os
 from datetime import datetime
 import shutil #rcopy and rename
 from graph_csv import graph_csv
+import argparse
+from gooey import Gooey, GooeyParser
+
 
 
 #### ARGUMENTS #####
-source_video_path = 'Bob.MPG'
-output_filename = 'Bob'
-isCamera = False # if True overrides source_video_path
+#source_video_path = 'Bob.MPG'
+#output_filename = 'Bob'
+#isCamera = False # if True overrides source_video_path
 # If the input is a camera - set isStream to True to record (have not tested)
-isStream = False
+#isStream = False
 
 #### GUI GOES HERE ####
-# GUI to simplify argument input, possibly also to allow review using graph_csv if csv selected
+# GUI to simplify argument input
 
+
+@Gooey(
+    program_name="Pupil Tracker",
+    program_description="Program takes file or camera input of pupil and outputs a csv file of pupil movement with graph, can also optionally capture camera input.",
+)
+def get_args():
+  parser = GooeyParser()
+  parser.add_argument("-p", "--source_video_path", help='input the source file for analysis', default="Bob.MPG",widget="FileChooser",gooey_options=dict(wildcard="Video files (*.mp4, *.mkv, *.avi, *.mpg)|*.mp4;*.mkv;*.avi;*.mpg)"))
+  parser.add_argument("-o", "--output_filename", help='input the patient name', default="output")
+  parser.add_argument("-c", "--camera", help="applying this flag activates camera as source and overides --source_video_path input",action="store_true")
+  parser.add_argument("-s", "--save_processed_video", help="applying this flag will save the processed video file", action="store_true")
+  args = parser.parse_args()
+  return args
+
+args = get_args() #used Gooey as a shortcut
+source_video_path = args.source_video_path
+output_filename = args.output_filename
+isCamera = args.camera
+isStream = args.save_processed_video
 
 
 #### METHODS ####
@@ -159,7 +181,7 @@ while(cap.isOpened()):
               # draw pupil
               cv2.ellipse(frame,(int(cx),int(cy)),(int(w),int(h)),theta*180.0/np.pi,0.0,360.0,(0,0,255),1)
               cv2.drawMarker(frame, (int(cx),int(cy)),(0, 0, 255),cv2.MARKER_CROSS,2,1)
-              cv2.imshow('Output',frame)
+              cv2.imshow('Output -press Q to Quit',frame)
               
               if isStream:
                 result.write(frame)
