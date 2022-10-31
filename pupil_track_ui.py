@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 import _thread
 import os
+from datetime import datetime
 
 
 # Call the plot.py in a function plot, plot.py will run in a separate thread and graph pupil movement in near realtime
@@ -73,10 +74,19 @@ def fit_rotated_ellipse(data):
 
 # Create a VideoCapture object and read from input file
 # If the input is the camera, pass 0 instead of the video file name
-cap = cv2.VideoCapture('Bob.MPG')
+# cap = cv2.VideoCapture('Bob.MPG')
+
+
+isCamera = True
+
+if isCamera:
+  cap = cv2.VideoCapture(0,cv2.CAP_DSHOW)
+
+
+
 
 # If the input is a camera - set isStream to True to record (have not tested)
-isStream = False
+isStream = True
 if isStream:
   frame_width = int(cap.get(3))
   frame_height = int(cap.get(4))
@@ -90,14 +100,21 @@ print('timestamp'+','+ 'xpos' + ','+ 'ypos', file=open('data\output.csv', 'a'))
 # Check if camera opened successfully
 if (cap.isOpened()== False): 
   print("Error opening video stream or file")
-
+if isCamera:
+#Set the resolution
+  #cap.set(cv2.CAP_PROP_FRAME_WIDTH, 720)
+  #cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 576)
+  cap.set(cv2.CAP_PROP_CODEC_PIXEL_FORMAT, 0x32595559)
+  print('camera ready')
 # Start the thread for the plot function
 _thread.start_new_thread(plot,())
+start_time = datetime.now().timestamp()
 
 # Read until video is completed
 while(cap.isOpened()):
   # Capture frame-by-frame
   ret, frame = cap.read()
+  #cv2.imshow("preview",frame)
   if ret == True:
       ret, frame = cap.read()
       kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(3,3))
@@ -113,7 +130,7 @@ while(cap.isOpened()):
 
       for i in range(len(contours)):
           hull.append(cv2.convexHull(contours[i], False)) 
-                      
+                        
     #   cnt = sorted(hull, key=cv2.contourArea)
     #   maxcnt = cnt[-1]
       for con in hull:
@@ -122,7 +139,10 @@ while(cap.isOpened()):
           if(len(approx) > 10 and area > 1000):
               cx,cy,w,h,theta = fit_rotated_ellipse_ransac(con.reshape(-1,2))
               #add data to csv
-              timestamp = cap.get(cv2.CAP_PROP_POS_MSEC)/1000 #get timestamp
+              if isCamera:
+                timestamp = datetime.now().timestamp() - start_time
+              else:
+                timestamp = cap.get(cv2.CAP_PROP_POS_MSEC)/1000 #get timestamp
               print(str(timestamp)+','+str(cx)+ ','+ str(cy), file=open('data\output.csv', 'a'))
               # draw pupil
               cv2.ellipse(frame,(int(cx),int(cy)),(int(w),int(h)),theta*180.0/np.pi,0.0,360.0,(0,0,255),1)
